@@ -1,5 +1,7 @@
 const express = require('express')
 const app = express()
+require('dotenv').config()
+const Person = require('./models/person')
 
 const cors = require('cors')
 
@@ -18,8 +20,8 @@ app.use(express.json())
 let persons = [
   {
     name: "Arto Hellas",
-      number: "040-123456",
-      id: 1
+    number: "040-123456",
+    id: 1
   },
   {
     name: "Ada Lovelace",
@@ -38,20 +40,16 @@ let persons = [
   }
 ]
 
-app.get('/api/persons', (req, res) => {
-  res.json(persons)
+app.get('/api/persons', (request, response) => {
+  Person.find({}).then(persons => {
+    response.json(persons.map(person => person.toJSON()))
+  })
 })
 
 app.get('/api/persons/:id', (request, response) => {
-  const id = Number(request.params.id)
-  const person = persons.find(p => p.id === id)
-  console.log(person)
-
-  if (person) {
-    response.json(person)
-  } else {
-    response.status(404).end()
-  }
+  Person.findById(request.params.id).then(person => {
+    response.json(person.toJSON())
+  })
 })
 
 app.get('/api/info', (request, response) => {
@@ -70,11 +68,11 @@ app.delete('/api/persons/:id', (request, response) => {
 app.post('/api/persons/', (request, response) => {
   const body = request.body
 
-  if (!body.name) {
+  if (body.name === undefined) {
     return response.status(400).json({
       error: 'name missing'
     })
-  } else if (!body.number) {
+  } else if (body.number === undefined) {
     return response.status(400).json({
       error: 'number missing'
     })
@@ -88,16 +86,17 @@ app.post('/api/persons/', (request, response) => {
     }
   }
 
-  const person = {
+  const person = new Person({
     name: body.name,
     number: body.number,
-    date: new Date(),
-    id: generateId()
-  }
+    date: new Date()
+  })
 
-  persons = persons.concat(person)
+  person.save().then(savedPerson => {
+    response.json(savedPerson.toJSON())
+  })
+
   app.use(morgan(' :method :url :status :response-time ms - :res[content-length] :body'))
-  response.json(person)
 })
 
 const generateId = () => {
@@ -107,7 +106,8 @@ const generateId = () => {
 }
 
 
-const PORT = process.env.PORT || 3001
+const PORT = process.env.PORT
+
 app.listen(PORT, () => {
   console.log(`Server is running on ${PORT}`)
 })
