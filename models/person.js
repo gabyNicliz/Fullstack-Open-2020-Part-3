@@ -1,7 +1,7 @@
 const mongoose = require('mongoose')
-const uniqueValidator = require('mongoose-unique-validator')
-
 mongoose.set('useFindAndModify', false)
+
+const uniqueValidator = require('mongoose-unique-validator')
 mongoose.set('useCreateIndex', true);
 
 const url = process.env.MONGODB_URI
