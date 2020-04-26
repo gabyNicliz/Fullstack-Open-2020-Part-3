@@ -1,3 +1,5 @@
+/* eslint-env node, es6 */
+
 const mongoose = require('mongoose')
 mongoose.set('useFindAndModify', false)
 
