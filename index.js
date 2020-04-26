@@ -17,29 +17,6 @@ app.use(morgan(' :method :url :status :response-time ms - :res[content-length] :
 
 app.use(express.json())
 
-let persons = [
-  {
-    name: "Arto Hellas",
-    number: "040-123456",
-    id: 1
-  },
-  {
-    name: "Ada Lovelace",
-    number: "39-44-5323523",
-    id: 2
-  },
-  {
-    name: "Dan Abramov",
-    number: "12-43-234345",
-    id: 3
-  },
-  {
-    name: "Mary Poppendieck",
-    number: "39-23-6423122",
-    id: 4
-  }
-]
-
 // get all persons from the the phonebook's database
 app.get('/api/persons', (request, response) => {
   Person.find({}).then(persons => {
@@ -79,26 +56,8 @@ app.delete('/api/persons/:id', (request, response, next) => {
 })
 
 // post new person's info on the phonebook's database
-app.post('/api/persons/', (request, response) => {
+app.post('/api/persons/', (request, response, next) => {
   const body = request.body
-
-  if (body.name === undefined) {
-    return response.status(400).json({
-      error: 'name missing'
-    })
-  } else if (body.number === undefined) {
-    return response.status(400).json({
-      error: 'number missing'
-    })
-  }
-
-  for (let i = 0; i < persons.length; i++) {
-    if (persons[i].name === body.name) {
-      return response.status(400).json({
-        error: 'name must be unique'
-      })
-    }
-  }
 
   const person = new Person({
     name: body.name,
@@ -106,9 +65,11 @@ app.post('/api/persons/', (request, response) => {
     date: new Date()
   })
 
-  person.save().then(savedPerson => {
-    response.json(savedPerson.toJSON())
-  })
+  person.save()
+    .then(savedPerson => {
+      response.json(savedPerson.toJSON())
+    })
+    .catch(error => next(error))
 
   app.use(morgan(' :method :url :status :response-time ms - :res[content-length] :body'))
 })
@@ -137,7 +98,7 @@ const generateId = () => {
 
 
 const unknownEndpoint = (request, response) => {
-  return response.status(400).send({ error: 'unknown endpoint' })
+  return response.status(404).send({ error: 'unknown endpoint' })
 }
 
 app.use(unknownEndpoint)
@@ -146,7 +107,9 @@ const errorHandler = (error, request, response, next) => {
   console.error(error.message)
 
   if (error.name === 'CastError' && error.kind == 'ObjectId') {
-    return response.status(404).send({ error: 'malformatted id' })
+    return response.status(400).send({ error: 'malformatted id' })
+  } else if (error.name === 'ValidationError') {
+    return response.status(400).send({ error: error.message })
   }
 
   next(error)
